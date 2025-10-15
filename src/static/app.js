@@ -29,7 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (details.participants && details.participants.length > 0) {
           participantsHtml += "<ul>";
           details.participants.forEach((p) => {
-            participantsHtml += `<li>${p}</li>`;
+            // Include a small delete button next to each participant
+            participantsHtml += `<li><span class="participant-email">${p}</span><button class="delete-participant" data-activity="${encodeURIComponent(
+              name
+            )}" data-email="${encodeURIComponent(p)}" aria-label="Unregister ${p}">✖</button></li>`;
           });
           participantsHtml += "</ul>";
         } else {
@@ -104,4 +107,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize app
   fetchActivities();
+
+  // Delegate click handler for delete buttons
+  activitiesList.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".delete-participant");
+    if (!btn) return;
+
+    const activityName = decodeURIComponent(btn.getAttribute("data-activity"));
+    const email = decodeURIComponent(btn.getAttribute("data-email"));
+
+    if (!confirm(`Unregister ${email} from ${activityName}?`)) return;
+
+    try {
+      const resp = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(
+        email
+      )}`, {
+        method: "DELETE",
+      });
+
+      const result = await resp.json();
+      if (resp.ok) {
+        // Refresh activities list to reflect removal
+        fetchActivities();
+      } else {
+        alert(result.detail || "Failed to unregister participant");
+      }
+    } catch (err) {
+      console.error("Error unregistering:", err);
+      alert("Failed to unregister participant. See console for details.");
+    }
+  });
 });
